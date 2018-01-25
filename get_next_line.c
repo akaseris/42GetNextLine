@@ -6,27 +6,71 @@
 /*   By: akaseris <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2018/01/12 16:54:46 by akaseris          #+#    #+#             */
-/*   Updated: 2018/01/12 17:32:46 by akaseris         ###   ########.fr       */
+/*   Updated: 2018/01/24 17:43:36 by akaseris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "get_next_line.h"
 
-int		get_next_line(const int fd, char **line)
+static t_list	*ft_getlink(t_list **slst, int fd)
 {
-	char *str;
-	int s;
+	t_list *tmp;
 
-	str = (char*)malloc(sizeof(*str) * 2);
-	while (read(fd, str, 1) && str[0] != '\n')
+	tmp = *slst;
+	while (tmp)
 	{
-		str[1] = '\0';
-		printf("%s", str);
+		if ((int)(tmp->content_size) == fd)
+			return (tmp);
+		tmp = tmp->next;
+	}
+	tmp = ft_lstnew(NULL, 0);
+	tmp->content_size = fd;
+	tmp->content = ft_strnew(0);
+	ft_lstadd(slst, tmp);
+	return (tmp);
+}
+
+static int		ft_line(char **line, char *content)
+{
+	char *s;
+
+	if ((s = ft_strchr(*line, '\n')))
+	{
+		*s = '\0';
+		s++;
+		*line = ft_strdup(*line);
+		content = ft_strcpy(content, s);
+		return (1);
+	}
+	else if (ft_strlen(content) > 0)
+	{
+		*content = '\0';
+		return (1);
 	}
 	return (0);
+}
+
+int				get_next_line(const int fd, char **line)
+{
+	static t_list	*slst;
+	t_list			*tmp;
+	char			*str;
+	int				s;
+
+	N_RETURN(fd < 0 || line == NULL || BUFF_SIZE <= 0);
+	tmp = ft_getlink(&slst, fd);
+	N_RETURN(!(str = ft_strnew(BUFF_SIZE + 1)));
+	while (!ft_strchr(str, '\n'))
+	{
+		s = read(fd, str, BUFF_SIZE);
+		N_RETURN(s < 0);
+		str[s] = '\0';
+		*line = ft_strjoin(tmp->content, str);
+		if (s == 0)
+			return (ft_line(line, (char *)(tmp->content)));
+		free(tmp->content);
+		tmp->content = *line;
+	}
+	free(str);
+	return (ft_line(line, (char *)(tmp->content)));
 }
